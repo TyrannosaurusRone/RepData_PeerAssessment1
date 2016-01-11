@@ -7,19 +7,63 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r, echo=TRUE}
+library(plyr)
+library(dplyr)
+library(lattice)
 
+```{r, echo=TRUE}
+setwd("C:/Users/Alexander/Documents/Coursera/5. Reproducible Research")
+
+activity <- read.csv("activity.csv")
+activity <- tbl_df(activity)
+```
 
 
 ## What is mean total number of steps taken per day?
+```{r, echo=TRUE}
+dayactivity <- group_by(activity, date)
 
+daysum <- summarise(dayactivity, steps = sum(steps, na.rm=T))
+hist(daysum$steps, xlab = "Total Steps Per Day", main = "Total Number of Steps Per Day")
+
+print.data.frame(summarise(dayactivity, steps = mean(steps, na.rm=T)))
+print.data.frame(summarise(dayactivity, steps = median(steps, na.rm=T)))
+```
 
 
 ## What is the average daily activity pattern?
-
-
+```{r, echo=TRUE}
+meanint <- group_by(activity, interval)
+avint <- summarise(meanint, steps = mean(steps, na.rm = T))
+plot(avint, type = "l")
+print(max(avint$steps))
+```
 
 ## Imputing missing values
+```{r, echo=TRUE}
+sum(!complete.cases(activity))
 
+mergedint <- merge(meanint, avint, by = "interval")
+mergedint$steps.x[is.na(mergedint$steps.x)] <- mergedint$steps.y[is.na(mergedint$steps.x)]
+              
+q4 <- group_by(mergedint, date)   
+q4a <- summarise(q4, steps = sum(steps.x, na.rm=T))
+  
+hist(q4a$steps, xlab = "Total Steps", main = "Total Number of Steps with Missing Values Filled In" )
 
+print.data.frame(summarise(q4, steps = mean(steps.x, na.rm=T)))
+print.data.frame(summarise(q4, steps = median(steps.x, na.rm=T)))
+```
+By imputing the missing data, we receive a plot which more closely resembles a standard distribution.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=TRUE}
+q4$date <- as.POSIXct(q4$date)
+daysofweek <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday')
+q4$Weekday <- factor((weekdays(q4$date) %in% daysofweek), levels=c(FALSE, TRUE), labels=c('weekend', 'weekday'))
+
+int2 <- group_by(q4, interval)
+avint2 <- summarise(int2, steps = mean(steps.x, na.rm = T))
+xyplot(avint2$steps ~ avint2$interval|q4$Weekday, type = "l", layout = c(1,2))
+```
